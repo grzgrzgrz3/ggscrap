@@ -4,7 +4,9 @@ from dodatki.test import ip, ipchange
 from dodatki.ekstra import send, log, openurl
 from dodatki.telnettt import zmiana
 
+
 class Control(object):
+    change_type = config.get('main', 'IP_CHANGE')
 
     def __init__(self, sender):
         self._sender = sender()
@@ -18,10 +20,9 @@ class Control(object):
             self._change_ip()
 
     def _change_ip(self):
-        change_type = config.get('main', 'IP_CHANGE')
-        if change_type == 'neo':
+        if self.change_type == 'neo':
             zmiana()
-        elif change_type == 'play':
+        elif self.change_type == 'play':
             ipchange()
         raise UnrecognizedIpchangeType("Invalid IP_CHANGE value in configuration file.")
 
@@ -81,15 +82,3 @@ class BaseSender(object):
 
     def _get_cases(self):
         pass
-
-
-
-
-
-
-
-
-
-
-
-
