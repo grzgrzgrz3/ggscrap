@@ -54,6 +54,21 @@ class TestControl(unittest.TestCase):
                                                           paragony=[{'numer': 8321, 'data': '2015-03-12'}])
 
 
+class TestWrapper(unittest.TestCase):
+
+    @patch("base.OpenUrlWrapper.otworz")
+    def test_wrapper_call_own_methods(self, wrapper_method):
+        wrapper = base.OpenUrlWrapper(object)
+        wrapper.otworz()
+        wrapper_method.assert_called_once_with()
+
+    def test_wrapper_redirect_calls_to_wrapped(self):
+        wrapped = MagicMock()
+        wrapper = base.OpenUrlWrapper(wrapped)
+        wrapper.test_method()
+        wrapped.test_method.called_once_with()
+
+
 class TestBaseSender(unittest.TestCase):
 
     def setUp(self):
@@ -61,6 +76,10 @@ class TestBaseSender(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+class TestResponse(unittest.TestCase):
+    pass
 
 
 if __name__ == '__main__':

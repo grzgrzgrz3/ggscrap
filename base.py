@@ -6,7 +6,6 @@ from dodatki.telnettt import zmiana
 
 
 class Control(object):
-    change_type = config.get('main', 'IP_CHANGE')
 
     def __init__(self, sender):
         self._sender = sender()
@@ -20,9 +19,11 @@ class Control(object):
             self._change_ip()
 
     def _change_ip(self):
-        if self.change_type == 'neo':
+        change_type = config.get('main', 'IP_CHANGE')
+
+        if change_type == 'neo':
             zmiana()
-        elif self.change_type == 'play':
+        elif change_type == 'play':
             ipchange()
         raise UnrecognizedIpchangeType("Invalid IP_CHANGE value in configuration file.")
 
@@ -64,6 +65,25 @@ class Control(object):
         dane_string = " ".join("{0}:{1}; ".format(key, value) for key, value in action_info['dane'].items())
         paragon_count = len(action_info['paragony'])
         self._log("New action dane: {0}, ilosc zgloszen: {1}".format(dane_string, paragon_count))
+
+
+class OpenUrlWrapper(object):
+    def __init__(self, openurl):
+        self.openurl = openurl
+
+    def otworz(self, *args, **kwargs):
+        return Response(self.openurl.otworz(*args, **kwargs))
+
+    def __getattr__(self, item):
+        return getattr(self.openurl, item)
+
+
+class Response(object):
+
+    def __init__(self, response):
+        self.response = response
+
+
 
 
 class BaseSender(object):
