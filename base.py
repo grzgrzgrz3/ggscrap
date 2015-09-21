@@ -1,12 +1,17 @@
-from exception import UnrecognizedIpchangeType
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    from BeautifulSoup import BeautifulSoup
+
 from utils import config
+from exception import UnrecognizedIpchangeType
+
 from dodatki.test import ip, ipchange
-from dodatki.ekstra import send, log, openurl
+from dodatki.ekstra import send, log, openurl, saving
 from dodatki.telnettt import zmiana
 
 
 class Control(object):
-
     def __init__(self, sender):
         self._sender = sender()
         self.ip = ip()
@@ -68,8 +73,8 @@ class Control(object):
 
 
 class OpenUrlWrapper(object):
-    def __init__(self, openurl):
-        self.openurl = openurl
+    def __init__(self, _openurl):
+        self.openurl = _openurl
 
     def otworz(self, *args, **kwargs):
         return Response(self.openurl.otworz(*args, **kwargs))
@@ -79,17 +84,48 @@ class OpenUrlWrapper(object):
 
 
 class Response(object):
+    save_path = "html/{0}.html"
 
     def __init__(self, response):
-        self.response = response
+        self._response = response
 
+    @property
+    def soup_response(self):
+        try:
+            soup = BeautifulSoup(self._response)
+        except:
+            # TODO: we should catch error here, when it occure we can debug and handle it.
+            # soup = BeautifulSoup(self.response, "lxml")
+            raise
+        return soup
 
+    def inputs(self, **kwargs):
+        debug = kwargs.pop('debug', False)
+        form = self.soup_response.find('form', kwargs)
+        inputs = form.findAll('input')
+        inputs_json = {}
+        for x in inputs:
+            if x:
+                if x.has_attr('name'):
+                    inputs_json.update({x["name"]: x.get("value", "").encode('utf-8')})
+                    if debug:
+                        print {x["name"]: x.get("value", "")}
+                else:
+                    if debug:
+                        print "no_name_input:", x
+            else:
+                # TODO: not sure if this can happen, remove it if we do not caught it for some time.
+                print x
+                raise Exception("Weird we found empty? input!")
+        return inputs_json
+
+    def save(self, name):
+        saving(self.save_path.format(name), self.soup_response.prettify())
 
 
 class BaseSender(object):
-
     def __init__(self):
-        self.p = openurl()
+        self.p = OpenUrlWrapper(openurl())
 
     def new_request(self, **kwargs):
         self.p.rebuild()
@@ -102,3 +138,4 @@ class BaseSender(object):
 
     def _get_cases(self):
         pass
+

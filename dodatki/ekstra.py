@@ -152,7 +152,7 @@ class openurl(object):
                 time.sleep(error*0.5)
 
 def getheaders():
-    head = open('dodatki/useragent.txt').readlines()
+    head = open('konkursy_base/dodatki/useragent.txt').readlines()
     # headers = {"User-Agent":"Mozilla/5.0 (Windows NT 6.2; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" }
     headers = {"User-Agent":random.choice(head).strip()}
     # print headers

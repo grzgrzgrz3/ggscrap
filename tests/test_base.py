@@ -79,6 +79,7 @@ class TestBaseSender(unittest.TestCase):
 
 
 class TestResponse(unittest.TestCase):
+    # TODO: write test for Response class
     pass
 
 
