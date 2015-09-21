@@ -139,3 +139,11 @@ class BaseSender(object):
     def _get_cases(self):
         pass
 
+
+# TODO: add decorator changing args to keyword args, preserve args order
+# TODO: implement json response somehow, with custom response parsing/handling
+# TODO: use normal logging system based on logging module
+# TODO: need smart, smooth download, resolve captcha system
+# TODO: add configurable sleep between requests
+# TODO: auto response event parsing
+# TODO: class with default events
