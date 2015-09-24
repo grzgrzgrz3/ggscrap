@@ -54,7 +54,7 @@ class Control(object):
         return self._sender.__class__.__name__.lower()
 
     def _get_action(self):
-        raw_action = send(['nowa_sesja', self._project_name])
+        raw_action = send([self._project_name, 'nowa_sesja'])
         try:
             action = eval(raw_action)
         except SyntaxError:
