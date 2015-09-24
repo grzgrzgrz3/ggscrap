@@ -25,7 +25,6 @@ class Control(object):
 
     def _change_ip(self):
         change_type = config.get('main', 'IP_CHANGE')
-
         if change_type == 'neo':
             zmiana()
         elif change_type == 'play':

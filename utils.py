@@ -1,5 +1,5 @@
 import ConfigParser
 
-config = ConfigParser.ConfigParser()
+config = ConfigParser.RawConfigParser()
 
 config.read('configuration.conf')
