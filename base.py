@@ -58,7 +58,7 @@ class Control(object):
         try:
             action = eval(raw_action)
         except SyntaxError:
-            self._log("Answer from serwer not in json format\n"
+            self._log("Answer from server not in json format\n"
                       "----------\n{0}\n----------\n".format(repr(raw_action)))
             raise
         return action
@@ -69,7 +69,7 @@ class Control(object):
     def _log_new_action(self, action_info):
         dane_string = " ".join("{0}:{1}; ".format(key, value) for key, value in action_info['dane'].items())
         paragon_count = len(action_info['paragony'])
-        self._log("New action dane: {0}, ilosc zgloszen: {1}".format(dane_string, paragon_count))
+        self._log("New action dane: {0}, applications sent: {1}".format(dane_string, paragon_count))
 
 
 class OpenUrlWrapper(object):
@@ -141,7 +141,7 @@ class BaseSender(object):
 
 
 # TODO: add decorator changing args to keyword args, preserve args order
-# TODO: implement json response somehow, with custom response parsing/handling
+# TODO: implement json discovery response somehow, with custom response parsing/handling
 # TODO: use normal logging system based on logging module
 # TODO: need smart, smooth download, resolve captcha system
 # TODO: add configurable sleep between requests

@@ -234,7 +234,7 @@ def get_action():
         return 2
 
 def saving(nazwa, data):
-    a = open("html/%s"%(nazwa), 'wb')
+    a = open(nazwa, 'wb')
     a.write(data)
     a.close()
 def scap(nazwa, data):
