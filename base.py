@@ -14,6 +14,7 @@ from dodatki.telnettt import zmiana
 class Control(object):
     def __init__(self, sender):
         self._sender = sender()
+        self._sender._log = self._log
         self.ip = ip()
 
     def loop(self):
@@ -63,7 +64,7 @@ class Control(object):
         return action
 
     def _log(self, message):
-        log(self._project_name, message)
+        log(self._project_name + ".log", message)
 
     def _log_new_action(self, action_info):
         dane_string = " ".join("{0}:{1}; ".format(key, value) for key, value in action_info['dane'].items())
@@ -123,6 +124,8 @@ class Response(object):
 
 
 class BaseSender(object):
+    _log = None
+
     def __init__(self):
         self.p = OpenUrlWrapper(openurl())
 
