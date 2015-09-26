@@ -19,10 +19,13 @@ class Control(object):
 
     def loop(self):
         while 1:
-            self.ip.stop()
-            self.new()
-            self.ip.start()
-            self._change_ip()
+            self.new_request()
+
+    def new_request(self):
+        self.ip.stop()
+        self._get_request()
+        self.ip.start()
+        self._change_ip()
 
     def _change_ip(self):
         change_type = config.get('main', 'IP_CHANGE')
@@ -30,9 +33,10 @@ class Control(object):
             zmiana()
         elif change_type == 'play':
             ipchange()
-        raise UnrecognizedIpchangeType("Invalid IP_CHANGE value in configuration file.")
+        else:
+            raise UnrecognizedIpchangeType("Invalid IP_CHANGE value in configuration file.")
 
-    def new(self):
+    def _get_request(self):
         action_info = self._get_action()
         if not self._verify_action(action_info):
             return
@@ -73,8 +77,8 @@ class Control(object):
 
 
 class OpenUrlWrapper(object):
-    def __init__(self, _openurl):
-        self.openurl = _openurl()
+    def __init__(self, wrapped_object):
+        self.openurl = wrapped_object()
 
     @property
     def otworz(self):
@@ -99,12 +103,11 @@ class Response(object):
     @property
     def soup_response(self):
         try:
-            soup = BeautifulSoup(self._response)
+            return BeautifulSoup(self._response)
         except:
             # TODO: we should catch error here, when it occure we can debug and handle it.
             # soup = BeautifulSoup(self.response, "lxml")
             raise
-        return soup
 
     def inputs(self, **kwargs):
         debug = kwargs.pop('debug', False)
