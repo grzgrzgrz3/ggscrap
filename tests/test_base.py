@@ -1,6 +1,6 @@
 import unittest
 import base
-from mock import patch, MagicMock
+from mock import patch, MagicMock, call
 
 
 class TestControl(unittest.TestCase):
@@ -72,11 +72,34 @@ class TestWrapper(unittest.TestCase):
 class TestBaseSender(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.openurl_patcher = patch('base.OpenUrlWrapper')
+        self.openurl = self.openurl_patcher.start()
+
+        self.send_patcher = patch('base.BaseSender.send')
+        self.send = self.send_patcher.start()
+
+        self.sender = base.BaseSender()
+
+        self.example_req = {"paragony": [1234, 54321, 128], 'email': 'test_email@dupa.pl'}
 
     def tearDown(self):
-        pass
+        self.openurl_patcher.stop()
+        self.send_patcher.stop()
 
+    def test_new_request_rebuild_browser(self):
+        self.sender.new_request(**self.example_req)
+        self.openurl().rebuild.assert_called_once_with()
+
+    def test_send_called_count(self):
+        self.sender.new_request(**self.example_req)
+        self.assertEquals(self.send.call_count, len(self.example_req['paragony']))
+
+    def test_send_called_with_correctA_args(self):
+        self.sender.new_request(**self.example_req)
+        correcT_call_args_list = [call(email='test_email@dupa.pl', paragon=1234),
+                                  call(email='test_email@dupa.pl', paragon=54321),
+                                  call(email='test_email@dupa.pl', paragon=128)]
+        self.assertEquals(self.send.call_args_list, correcT_call_args_list)
 
 class TestResponse(unittest.TestCase):
     # TODO: write test for Response class
