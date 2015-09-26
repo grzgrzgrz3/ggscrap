@@ -74,7 +74,7 @@ class Control(object):
 
 class OpenUrlWrapper(object):
     def __init__(self, _openurl):
-        self.openurl = _openurl
+        self.openurl = _openurl()
 
     @property
     def otworz(self):
@@ -134,7 +134,7 @@ class BaseSender(object):
     _log = None
 
     def __init__(self):
-        self._browser = OpenUrlWrapper(openurl())
+        self._browser = OpenUrlWrapper(openurl)
 
     def new_request(self, **kwargs):
         self._browser.rebuild()
