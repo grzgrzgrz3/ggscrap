@@ -32,7 +32,7 @@ class TestControl(unittest.TestCase):
     def test_call_send_with_correct_args(self):
         self._register_send()
         self.control.new()
-        self.send_mock.assert_called_once_with(['nowa_sesja', "testsender"])
+        self.send_mock.assert_called_once_with(["testsender", 'nowa_sesja'])
 
     @patch('base.Control._log_new_action')
     def test_skip_on_used_ip(self, called_not_skipped):
@@ -56,10 +56,10 @@ class TestControl(unittest.TestCase):
 
 class TestWrapper(unittest.TestCase):
 
-    @patch("base.OpenUrlWrapper.otworz")
+    @patch("base.OpenUrlWrapper.open")
     def test_wrapper_call_own_methods(self, wrapper_method):
         wrapper = base.OpenUrlWrapper(object)
-        wrapper.otworz()
+        wrapper.open()
         wrapper_method.assert_called_once_with()
 
     def test_wrapper_redirect_calls_to_wrapped(self):

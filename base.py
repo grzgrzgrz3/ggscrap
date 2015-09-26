@@ -76,7 +76,14 @@ class OpenUrlWrapper(object):
     def __init__(self, _openurl):
         self.openurl = _openurl
 
-    def otworz(self, *args, **kwargs):
+    @property
+    def otworz(self):
+        """
+        Backward compatibility
+        """
+        return self.open
+
+    def open(self, *args, **kwargs):
         return Response(self.openurl.otworz(*args, **kwargs))
 
     def __getattr__(self, item):
@@ -127,13 +134,20 @@ class BaseSender(object):
     _log = None
 
     def __init__(self):
-        self.p = OpenUrlWrapper(openurl())
+        self._browser = OpenUrlWrapper(openurl())
 
     def new_request(self, **kwargs):
-        self.p.rebuild()
+        self._browser.rebuild()
         paragony = kwargs.pop('paragony')
         for paragon in paragony:
             self.send(paragon=paragon, **kwargs)
+
+    @property
+    def p(self):
+        """
+        Hack to provide backward compatibility
+        """
+        return self._browser
 
     def send(self, *args, **kwargs):
         raise NotImplemented()
