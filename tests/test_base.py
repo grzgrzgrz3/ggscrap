@@ -1,5 +1,4 @@
 import unittest
-import mock
 import base
 from mock import patch, MagicMock, call
 from exception import UnrecognizedIpchangeType
@@ -17,18 +16,16 @@ class TestControl(unittest.TestCase):
         self.sender = MagicMock()
         self.sender().__class__.__name__ = 'TestSender'
 
-        #ipchange mocks
+        # ipchange mocks
         self.zmiana_patcher = patch("base.zmiana")
         self.zmiana = self.zmiana_patcher.start()
 
         self.ipchange_patcher = patch("base.ipchange")
         self.ipchange = self.ipchange_patcher.start()
 
-
         self.config_patcher = patch("base.config")
         self.config = self.config_patcher.start()
         self.config.get.return_value = 'play'
-
 
         self.ip_patcher = patch("base.ip")
         self.ip = self.ip_patcher.start()
@@ -74,6 +71,7 @@ class TestControl(unittest.TestCase):
         self.control.new_request()
         self.sender().new_request.assert_called_once_with(email='test@email.com', numer=883042111,
                                                           paragony=[{'numer': 8321, 'data': '2015-03-12'}])
+
     def test_new_request_lock_and_free(self):
         self._register_send()
         self.control.new_request()
@@ -98,7 +96,6 @@ class TestControl(unittest.TestCase):
         self._register_send()
         self.config.get.return_value = 'wrong_value'
         self.assertRaises(UnrecognizedIpchangeType, self.control.new_request)
-
 
 
 class TestWrapper(unittest.TestCase):
@@ -143,10 +140,11 @@ class TestBaseSender(unittest.TestCase):
 
     def test_send_called_with_correctA_args(self):
         self.sender.new_request(**self.example_req)
-        correcT_call_args_list = [call(email='test_email@dupa.pl', paragon=1234),
+        correct_call_args_list = [call(email='test_email@dupa.pl', paragon=1234),
                                   call(email='test_email@dupa.pl', paragon=54321),
                                   call(email='test_email@dupa.pl', paragon=128)]
-        self.assertEquals(self.send.call_args_list, correcT_call_args_list)
+        self.assertEquals(self.send.call_args_list, correct_call_args_list)
+
 
 class TestResponse(unittest.TestCase):
     # TODO: write test for Response class
@@ -178,15 +176,45 @@ class TestResponse(unittest.TestCase):
         self.assertEquals(self.response.inputs(), dict(inputs))
 
     @patch("__builtin__.open", create=True)
-    def test_save_in_pretty_format(self, open):
+    def test_save_in_pretty_format(self, open_mock):
         fd_mock = MagicMock()
-        open.return_value = fd_mock
+        open_mock.return_value = fd_mock
         name = "test_name"
         self.beatifulsoup().prettify.return_value = "pretty html"
         self.response.save(name)
-        open.assert_called_once_with("html/test_name.html", "wb")
+        open_mock.assert_called_once_with("html/test_name.html", "wb")
         fd_mock.write.assert_called_once_with("pretty html")
         fd_mock.close.assert_called_once_with()
+
+
+class TestSendArgsDecorator(unittest.TestCase):
+
+    def test_call_decorated_function(self):
+        mutable_object = []
+
+        def func():
+            mutable_object.append(1)
+
+        base.send_args(func)()
+        self.assertTrue(mutable_object)
+
+    def test_raise_when_wrapped_function_has_kwargs(self):
+        self.assertRaises(TypeError, base.send_args, lambda args1, arg2, kwargs1='saf': 0)
+
+    def test_pass_only_necessary_args_in_correct_order(self):
+        @base.send_args
+        def func(paragon, email, numer):
+            return paragon, email, numer
+        kwargs = {'paragon': 123, 'email': 'test@mail.com', 'numer': 7337, 'dummy_arg': 'dummy'}
+        self.assertEquals(func(**kwargs), (123, 'test@mail.com', 7337))
+
+    def test_passed_not_enought_arguments(self):
+        @base.send_args
+        def func(paragon, email, numer, too_many1, too_many2):
+            return paragon, email, numer, too_many1, too_many2
+
+        kwargs = {'paragon': 123, 'email': 'test@mail.com', 'numer': 7337, 'dummy_arg': 'dummy'}
+        self.assertRaises(TypeError, func, **kwargs)
 
 if __name__ == '__main__':
     unittest.main()
