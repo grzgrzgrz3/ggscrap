@@ -147,7 +147,6 @@ class TestBaseSender(unittest.TestCase):
 
 
 class TestResponse(unittest.TestCase):
-    # TODO: write test for Response class
 
     def setUp(self):
         self.beatifulsoup_patch = patch("base.BeautifulSoup")

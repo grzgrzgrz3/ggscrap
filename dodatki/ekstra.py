@@ -139,7 +139,6 @@ class openurl(object):
                 except:
                     return response.read()
             except:
-                raise
                 internet()
                 error += 1
                 if error > 60:
