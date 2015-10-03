@@ -79,7 +79,7 @@ class Control(object):
 
 
 class OpenUrlWrapper(object):
-    def __init__(self, wrapped_object):
+    def __init__(self, wrapped_object=openurl):
         self.openurl = wrapped_object()
 
     @property
@@ -135,47 +135,6 @@ class Response(object):
         saving(self.save_path.format(name), self.soup_response.prettify())
 
 
-class BaseSender(object):
-    _log = None
-
-    def __init__(self):
-        self._browser = OpenUrlWrapper(openurl)
-
-    def new_request(self, **kwargs):
-        self._browser.rebuild()
-        paragony = kwargs.pop('paragony')
-        for paragon in paragony:
-            self.send(paragon=paragon, **kwargs)
-
-    @property
-    def p(self):
-        """
-        Hack to provide backward compatibility
-        """
-        return self._browser
-
-    def send(self, *args, **kwargs):
-        raise NotImplemented()
-
-    def _get_cases(self):
-        pass
-
-
-def send_args(func):
-    args = inspect.getargspec(func)
-    if args.defaults:
-        raise TypeError("wrapped function {0}() can't have keyword arguments".format(func.__name__))
-
-    def wrapper(**kwargs):
-        test_args = list(args.args)
-        map(test_args.remove, [arg for arg in kwargs.keys() if arg in test_args])
-        if test_args:
-            raise TypeError("Function {0}() require arguments: {1}".format(func.__name__, ", ".join(test_args)))
-
-        arguments = (kwargs[arg] for arg in args.args)
-        return func(*arguments)
-
-    return wrapper
 
 # TODO: implement json discovery response somehow, with custom response parsing/handling
 # TODO: use normal logging system based on logging module
