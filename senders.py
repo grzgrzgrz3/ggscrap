@@ -1,3 +1,4 @@
+import inspect
 from base import OpenUrlWrapper
 
 
@@ -12,6 +13,7 @@ class BaseSender(object):
         paragony = kwargs.pop('paragony')
         for paragon in paragony:
             self.send(paragon=paragon, **kwargs)
+        self.cleanup()
 
     @property
     def p(self):
@@ -26,13 +28,17 @@ class BaseSender(object):
     def _get_cases(self):
         pass
 
+    def cleanup(self, *args, **kwargs):
+        pass
+
 
 def send_args(func):
     args = inspect.getargspec(func)
     if args.defaults:
         raise TypeError("wrapped function {0}() can't have keyword arguments".format(func.__name__))
 
-    def wrapper(**kwargs):
+    def wrapper(self, **kwargs):
+        kwargs.update({"self": self})
         test_args = list(args.args)
         map(test_args.remove, [arg for arg in kwargs.keys() if arg in test_args])
         if test_args:
