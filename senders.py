@@ -2,6 +2,13 @@ import inspect
 from base import OpenUrlWrapper
 
 
+class ResponseSignals:
+    SUCCESS = 1
+    RESEND = 2
+    CAPTCHA = RESEND
+    FULLRESEND = 3
+
+
 class BaseSender(object):
     _log = None
 
@@ -10,10 +17,31 @@ class BaseSender(object):
 
     def new_request(self, **kwargs):
         self._browser.rebuild()
+        self._resend_handle(self.pre_request)
+
         paragony = kwargs.pop('paragony')
         for paragon in paragony:
-            self.send(paragon=paragon, **kwargs)
-        self.cleanup()
+            while 1:
+                res_signal = self._resend_handle(self._send_request,
+                                                 signal=ResponseSignals.FULLRESEND,
+                                                 paragon=paragon, **kwargs)
+                self._resend_handle(self.clean)
+                if res_signal == ResponseSignals.SUCCESS:
+                    break
+
+        self._resend_handle(self.after_requests)
+
+    def _send_request(self, *args, **kwargs):
+        self._resend_handle(self.pre_send)
+        return self._resend_handle(self.send, *args, **kwargs)
+
+    def _resend_handle(self, method, *args, **kwargs):
+        signal = kwargs.pop('signal', ResponseSignals.RESEND)
+        while 1:
+            response = method(*args, **kwargs)
+            if response == signal:
+                continue
+            return response
 
     @property
     def p(self):
@@ -25,7 +53,19 @@ class BaseSender(object):
     def send(self, *args, **kwargs):
         raise NotImplemented()
 
-    def _get_cases(self):
+    def pre_request(self, *args, **kwags):
+        pass
+
+    def pre_send(self, *args, **kwargs):
+        pass
+
+    def clean(self, *args, **kwargs):
+        pass
+
+    def after_clean(self, *args, **kwargs):
+        pass
+
+    def after_requests(self, *args, **kwargs):
         pass
 
     def cleanup(self, *args, **kwargs):
@@ -48,4 +88,3 @@ def send_args(func):
         return func(*arguments)
 
     return wrapper
-
