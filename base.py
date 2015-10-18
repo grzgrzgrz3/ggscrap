@@ -1,5 +1,3 @@
-import inspect
-
 try:
     from bs4 import BeautifulSoup
 except ImportError:
@@ -132,7 +130,7 @@ class Response(object):
         return inputs_json
 
     def save(self, name):
-        saving(self.save_path.format(name), self.soup_response.prettify())
+        saving(self.save_path.format(name), self.soup_response.prettify().encode('utf8'))
 
 
 
