@@ -130,8 +130,7 @@ class Response(object):
         return inputs_json
 
     def save(self, name):
-        saving(self.save_path.format(name), self.soup_response.encode('utf8'))
-
+        saving(self.save_path.format(name), self.soup_response.prettify().encode('utf8'))
 
 
 # TODO: implement json discovery response somehow, with custom response parsing/handling
