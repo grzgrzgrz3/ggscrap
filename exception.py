@@ -9,8 +9,18 @@ class UnrecognizedIpchangeType(ConfigError):
 class EmailException(Exception):
     pass
 
+
 class EmailSyntaxError(EmailException):
     pass
 
+
 class DiscoverPop3Fail(EmailException):
+    pass
+
+
+class EmailFetchError(EmailException):
+    pass
+
+
+class EmailWaitTimeout(EmailException):
     pass
