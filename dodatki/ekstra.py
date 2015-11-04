@@ -183,7 +183,8 @@ def log(name, dane):
     to = get_time(time.time())+" "+dane
     print to
     a = open(name, 'a')
-    a.write(to + "\n")
+    line = to + u"\n"
+    a.write(line.encode('utf8'))
     a.close()
 def spij_e():
     h = int(datetime.datetime.fromtimestamp(int(time.time())).strftime('%H'))

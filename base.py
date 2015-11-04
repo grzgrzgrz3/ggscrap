@@ -68,12 +68,12 @@ class Control(object):
         return action
 
     def _log(self, message):
-        log(self._project_name + ".log", message)
+        log(self._project_name.decode('utf-8') + u".log", message)
 
     def _log_new_action(self, action_info):
-        dane_string = " ".join("{0}:{1}; ".format(key, value) for key, value in action_info['dane'].items())
+        dane_string = u" ".join(u"{0}:{1}; ".format(key, value) for key, value in action_info['dane'].items())
         paragon_count = len(action_info['paragony'])
-        self._log("New action dane: {0}, applications sent: {1}".format(dane_string, paragon_count))
+        self._log(u"New action dane: {0}, applications sent: {1}".format(dane_string, paragon_count))
 
 
 class OpenUrlWrapper(object):
@@ -130,7 +130,7 @@ class Response(object):
         return inputs_json
 
     def save(self, name):
-        saving(self.save_path.format(name), self.soup_response.prettify().encode('utf8'))
+        saving(self.save_path.format(name), self.soup_response.encode('utf8'))
 
 
 
