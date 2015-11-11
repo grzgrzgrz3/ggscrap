@@ -1,12 +1,13 @@
 import unittest
 from contextlib import contextmanager
 
-from mock import patch, call
-from senders import BaseSender, ResponseSignals, send_args
+from mock import patch, call, PropertyMock
+from exception import MissingMethod, UnknownResponse
+from senders import ALL_ACTION_METHODS, BaseSender, ResponseSignals, send_args, ResponseMatchSender
 
 
-class TestBaseSender(unittest.TestCase):
-    _all_action_methods = ('send', 'pre_request', 'pre_send', 'clean', 'after_requests')
+class SenderTest(unittest.TestCase):
+    _all_action_methods = ALL_ACTION_METHODS
 
     def setUp(self):
         self.openurl_patcher = patch('senders.OpenUrlWrapper')
@@ -18,7 +19,8 @@ class TestBaseSender(unittest.TestCase):
 
         self.sender = BaseSender()
 
-        self.example_req = {"paragony": [1234, 54321, 128], 'email': 'test_email@dupa.pl'}
+        self.example_req = {"paragony": [1234, 54321, 128],
+                            'email': 'test_email@dupa.pl'}
 
     @contextmanager
     def _mock_action_methods(self, methods, **kwargs):
@@ -43,6 +45,15 @@ class TestBaseSender(unittest.TestCase):
     def tearDown(self):
         self.openurl_patcher.stop()
         self.send_patcher.stop()
+
+
+class TestBaseSender(SenderTest):
+
+    def test_send_need_to_be_overridden(self):
+        self.send_patcher.stop()
+        self.assertRaises(NotImplementedError,
+                          self.sender.new_request, **self.example_req)
+        self.send_patcher.start()
 
     def test_new_request_rebuild_browser(self):
         self.sender.new_request(**self.example_req)
@@ -112,6 +123,55 @@ class TestBaseSender(unittest.TestCase):
                                          method, calls, correct_call, test_number))
 
 
+class TestResponseMatchSender(SenderTest):
+
+    def setUp(self):
+        super(TestResponseMatchSender, self).setUp()
+        self.pattern_patcher = patch('senders.ResponseMatchSender.PATTERN_METHOD',
+                                     create=True, new_callable=PropertyMock)
+        self.pattern = self.pattern_patcher.start()
+
+        self.pattern.return_value = r"^some response$"
+        self.method_patcher = patch('senders.ResponseMatchSender.RESULT_METHOD',
+                                    create=True)
+        self.method = self.method_patcher.start()
+
+    def tearDown(self):
+        super(TestResponseMatchSender, self).tearDown()
+        self.pattern_patcher.stop()
+        self.method_patcher.stop()
+
+    def test_raise_on_missing_response_method(self):
+        self.method_patcher.stop()
+        self.assertRaises(MissingMethod, ResponseMatchSender)
+        self.method_patcher.start()
+
+    def test_call_correct_method(self):
+        self.send.return_value = "some response"
+        ResponseMatchSender().new_request(**self.example_req)
+        self.assertEqual(self.method.call_count, 3)
+
+    def test_ignore_methods_not_responsable(self):
+        self.send.return_value = "some response"
+        del self.send.responseable
+        ResponseMatchSender().new_request(**self.example_req)
+        self.method.assert_not_called()
+        self.send.responseable = False
+        ResponseMatchSender().new_request(**self.example_req)
+        self.method.assert_not_called()
+
+    def test_raise_when_not_match(self):
+        self.send.return_value = "not matchable response"
+        with self.assertRaises(UnknownResponse):
+            ResponseMatchSender().new_request(**self.example_req)
+
+    def test_response_and_resend_cooperate(self):
+        self.send.return_value = "some response"
+        self.method.side_effect = ([ResponseSignals.RESEND]*3 + [1])*3
+        ResponseMatchSender().new_request(**self.example_req)
+        self.assertEqual(self.send.call_count, 3*4)
+
+
 class TestSendArgsDecorator(unittest.TestCase):
 
     def test_call_decorated_function(self):
@@ -120,26 +180,34 @@ class TestSendArgsDecorator(unittest.TestCase):
         def func():
             mutable_object.append(1)
 
-        send_args(func)()
+        send_args(func)(self)
         self.assertTrue(mutable_object)
 
     def test_raise_when_wrapped_function_has_kwargs(self):
-        self.assertRaises(TypeError, send_args, lambda args1, arg2, kwargs1='saf': 0)
+        self.assertRaises(TypeError, send_args,
+                          lambda args1, arg2, kwargs1='saf': 0)
 
     def test_pass_only_necessary_args_in_correct_order(self):
         @send_args
-        def func(paragon, email, numer):
+        def func(self, paragon, email, numer):
             return paragon, email, numer
-        kwargs = {'paragon': 123, 'email': 'test@mail.com', 'numer': 7337, 'dummy_arg': 'dummy'}
-        self.assertEquals(func(**kwargs), (123, 'test@mail.com', 7337))
+        kwargs = {'paragon': 123, 'email': 'test@mail.com',
+                  'numer': 7337, 'dummy_arg': 'dummy'}
+        self.assertEquals(func(self=self, **kwargs),
+                          (123, 'test@mail.com', 7337))
 
     def test_passed_not_enough_arguments(self):
         @send_args
-        def func(paragon, email, numer, too_many1, too_many2):
+        def func(self, paragon, email, numer, too_many1, too_many2):
             return paragon, email, numer, too_many1, too_many2
 
-        kwargs = {'paragon': 123, 'email': 'test@mail.com', 'numer': 7337, 'dummy_arg': 'dummy'}
-        self.assertRaises(TypeError, func, **kwargs)
+        kwargs = {'paragon': 123, 'email': 'test@mail.com',
+                  'numer': 7337, 'dummy_arg': 'dummy'}
+        with self.assertRaises(TypeError) as cm:
+            func(self, **kwargs)
+        self.assertEqual(str(cm.exception),
+                         'Function func() require arguments: too_many1, too_many2')
+
 
 if __name__ == '__main__':
     unittest.main()

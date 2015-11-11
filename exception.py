@@ -24,3 +24,14 @@ class EmailFetchError(EmailException):
 
 class EmailWaitTimeout(EmailException):
     pass
+
+
+class MissingMethod(Exception):
+    pass
+
+
+class UnknownResponse(Exception):
+    def __init__(self, method):
+        method_name = getattr(method, __name__)
+        msg = "Do not match response for method {0}".format(method_name)
+        super(UnknownResponse, self).__init__(msg)

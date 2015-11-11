@@ -1,5 +1,11 @@
 import inspect
+import re
+from functools import partial
+
 from base import OpenUrlWrapper
+from exception import MissingMethod, UnknownResponse
+
+ALL_ACTION_METHODS = ('send', 'pre_request', 'pre_send', 'clean', 'after_requests')
 
 
 class ResponseSignals:
@@ -7,6 +13,18 @@ class ResponseSignals:
     RESEND = 2
     CAPTCHA = RESEND
     FULLRESEND = 3
+
+
+def resend(signal=ResponseSignals.RESEND):
+    def pre_wrapper(method):
+        def wrapper(*args, **kwargs):
+            while 1:
+                response = method(*args, **kwargs)
+                if response == signal:
+                    continue
+                return response
+        return wrapper
+    return pre_wrapper
 
 
 class BaseSender(object):
@@ -17,31 +35,18 @@ class BaseSender(object):
 
     def new_request(self, **kwargs):
         self._browser.rebuild()
-        self._resend_handle(self.pre_request)
+        self._pre_request()
 
         paragony = kwargs.pop('paragony')
         for paragon in paragony:
-            while 1:
-                res_signal = self._resend_handle(self._send_request,
-                                                 signal=ResponseSignals.FULLRESEND,
-                                                 paragon=paragon, **kwargs)
-                self._resend_handle(self.clean)
-                if res_signal == ResponseSignals.SUCCESS:
-                    break
+            self._send_request(paragon=paragon, **kwargs)
+            self._clean()
+        self._after_requests()
 
-        self._resend_handle(self.after_requests)
-
+    @resend(ResponseSignals.FULLRESEND)
     def _send_request(self, *args, **kwargs):
-        self._resend_handle(self.pre_send)
-        return self._resend_handle(self.send, *args, **kwargs)
-
-    def _resend_handle(self, method, *args, **kwargs):
-        signal = kwargs.pop('signal', ResponseSignals.RESEND)
-        while 1:
-            response = method(*args, **kwargs)
-            if response == signal:
-                continue
-            return response
+        self._pre_send()
+        return self._send(*args, **kwargs)
 
     @property
     def p(self):
@@ -50,26 +55,93 @@ class BaseSender(object):
         """
         return self._browser
 
+    @resend()
+    def _pre_request(self):
+        return self.pre_request()
+
+    def pre_request(self):
+        pass
+
+    @resend()
+    def _pre_send(self):
+        return self.pre_send()
+
+    def pre_send(self):
+        pass
+
+    @resend()
+    def _send(self, *args, **kwargs):
+        return self.send(*args, **kwargs)
+
     def send(self, *args, **kwargs):
-        raise NotImplemented()
+        raise NotImplementedError()
 
-    def pre_request(self, *args, **kwags):
+    @resend()
+    def _clean(self):
+        return self.clean()
+
+    def clean(self):
         pass
 
-    def pre_send(self, *args, **kwargs):
+    @resend()
+    def _after_requests(self):
+        return self.after_requests()
+
+    def after_requests(self):
         pass
 
-    def clean(self, *args, **kwargs):
-        pass
 
-    def after_clean(self, *args, **kwargs):
-        pass
+class ResponseMatchSender(BaseSender):
 
-    def after_requests(self, *args, **kwargs):
-        pass
+    def __new__(cls, *args, **kwargs):
+        self = super(ResponseMatchSender,
+                     cls).__new__(cls, *args, **kwargs)
+        cls._init_methods(self)
+        return self
 
-    def cleanup(self, *args, **kwargs):
-        pass
+    def __init__(self):
+        self._verify_callbacks()
+        super(ResponseMatchSender, self).__init__()
+
+    @classmethod
+    def _init_methods(cls, self):
+        for method in ALL_ACTION_METHODS:
+            callable_method = resend()(partial(self._process_response,
+                                               getattr(self, method)))
+            setattr(self, method, callable_method)
+
+    def _get_method(self, name):
+        method_format = 'RESULT_{0}'
+        return getattr(self, method_format.format(name))
+
+    def _verify_callbacks(self):
+        for pattern in self._get_all_patterns():
+            try:
+                self._get_method(pattern['method'])
+            except AttributeError:
+                raise MissingMethod("Missing method {0}".format(pattern))
+
+    def _get_all_patterns(self):
+        pattern_suffix = "^PATTERN_(.*)$"
+
+        matches = filter(None, [re.match(pattern_suffix, attr)
+                                for attr in dir(self)])
+        return [{'method': match.group(1),
+                 'pattern': getattr(self, match.group(0))} for match in matches]
+
+    def _match_response(self, response):
+        for pattern in self._get_all_patterns():
+            if re.match(pattern['pattern'], response):
+                return self._get_method(pattern['method'])
+
+    def _process_response(self, method, *args, **kwargs):
+        response = method(*args, **kwargs)
+        if not hasattr(method, 'responseable') or not method.responseable:
+            return response
+        response_method = self._match_response(response)
+        if not response_method:
+            raise UnknownResponse(method)
+        return response_method()
 
 
 def send_args(func):
