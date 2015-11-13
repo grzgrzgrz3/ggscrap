@@ -143,6 +143,36 @@ class ResponseMatchSender(BaseSender):
             raise UnknownResponse(method)
         return response_method()
 
+    def send(self, *args, **kwargs):
+        raise NotImplementedError
+
+class ResponseSender(ResponseMatchSender):
+    PATTERN_wrong_captcha = None
+    PATTERN_duplicate = None
+    PATTERN_success = None
+    PATTERN_unknown = r".*"
+
+    def RESULT_wrong_captcha(self):
+        pass
+
+    def RESULT_duplicate(self):
+        pass
+
+    def RESULT_success(self):
+        pass
+
+    def RESULT_unknown(self):
+        pass
+
+    def _process_response(self, method, *args, **kwargs):
+        try:
+            return super(ResponseSender,
+                         self)._process_response(method, *args, **kwargs)
+        except UnknownResponse:
+            return self.RESULT_unknown()
+
+    def send(self, *args, **kwargs):
+        raise NotImplementedError
 
 def send_args(func):
     args = inspect.getargspec(func)
