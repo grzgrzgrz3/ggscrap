@@ -31,9 +31,10 @@ class BaseSender(object):
     _log = None
     request = None
     current_bill = None
+    _browser_cls = OpenUrlWrapper
 
     def __init__(self):
-        self._browser = OpenUrlWrapper()
+        self._browser = self._browser_cls()
 
     def new_request(self, **kwargs):
         self._browser.rebuild()
@@ -46,6 +47,11 @@ class BaseSender(object):
             self._send_request(paragon=bill, **kwargs)
             self._clean()
         self._after_requests()
+
+    @classmethod
+    def change_browser(self, new_browser):
+        # TODO: wirte unittest
+        self._browser_cls = new_browser
 
     @resend(ResponseSignals.FULLRESEND)
     def _send_request(self, *args, **kwargs):
