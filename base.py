@@ -109,6 +109,10 @@ class Response(object):
             # soup = BeautifulSoup(self.response, "lxml")
             raise
 
+    @property
+    def dict_response(self):
+        return eval(self._response)
+
     def inputs(self, **kwargs):
         debug = kwargs.pop('debug', False)
         form = self.soup_response.find('form', kwargs)

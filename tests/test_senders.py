@@ -1,7 +1,7 @@
 import unittest
 from contextlib import contextmanager
 
-from mock import patch, call, PropertyMock
+from mock import patch, call, PropertyMock, MagicMock
 from exception import MissingMethod, UnknownResponse
 from senders import ALL_ACTION_METHODS, BaseSender, ResponseSignals, send_args, ResponseMatchSender
 
@@ -152,13 +152,14 @@ class TestResponseMatchSender(SenderTest):
         self.assertEqual(self.method.call_count, 3)
 
     def test_ignore_methods_not_responsable(self):
-        self.send.return_value = "some response"
-        del self.send.responseable
-        ResponseMatchSender().new_request(**self.example_req)
-        self.method.assert_not_called()
-        self.send.responseable = False
-        ResponseMatchSender().new_request(**self.example_req)
-        self.method.assert_not_called()
+        with patch("senders.ResponseMatchSender.send",
+                   return_value="some response") as send:
+            del send.responsable
+            ResponseMatchSender().new_request(**self.example_req)
+            self.method.assert_not_called()
+            send.responsable = False
+            ResponseMatchSender().new_request(**self.example_req)
+            self.method.assert_not_called()
 
     def test_raise_when_not_match(self):
         self.send.return_value = "not matchable response"

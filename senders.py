@@ -29,6 +29,8 @@ def resend(signal=ResponseSignals.RESEND):
 
 class BaseSender(object):
     _log = None
+    request = None
+    current_bill = None
 
     def __init__(self):
         self._browser = OpenUrlWrapper()
@@ -36,10 +38,12 @@ class BaseSender(object):
     def new_request(self, **kwargs):
         self._browser.rebuild()
         self._pre_request()
-
-        paragony = kwargs.pop('paragony')
-        for paragon in paragony:
-            self._send_request(paragon=paragon, **kwargs)
+        bills = kwargs.pop('paragony')
+        self.request = kwargs
+        for bill in bills:
+            self._log("Sending bill %s" % bill)
+            self.current_bill = bill
+            self._send_request(paragon=bill, **kwargs)
             self._clean()
         self._after_requests()
 
@@ -91,6 +95,11 @@ class BaseSender(object):
         pass
 
 
+def responsable(method):
+    method.responsable = True
+    return method
+
+
 class ResponseMatchSender(BaseSender):
 
     def __new__(cls, *args, **kwargs):
@@ -136,15 +145,18 @@ class ResponseMatchSender(BaseSender):
 
     def _process_response(self, method, *args, **kwargs):
         response = method(*args, **kwargs)
-        if not hasattr(method, 'responseable') or not method.responseable:
+
+        if not hasattr(method, 'responsable') or not method.responsable:
             return response
         response_method = self._match_response(response)
         if not response_method:
             raise UnknownResponse(method)
         return response_method()
 
+    @responsable
     def send(self, *args, **kwargs):
-        raise NotImplementedError
+        return super(ResponseMatchSender, self).send(*args, **kwargs)
+
 
 class ResponseSender(ResponseMatchSender):
     PATTERN_wrong_captcha = None
@@ -156,10 +168,10 @@ class ResponseSender(ResponseMatchSender):
         pass
 
     def RESULT_duplicate(self):
-        pass
+        self._log("Duplicated bill")
 
     def RESULT_success(self):
-        pass
+        self._log("Successful registered")
 
     def RESULT_unknown(self):
         pass
@@ -173,6 +185,7 @@ class ResponseSender(ResponseMatchSender):
 
     def send(self, *args, **kwargs):
         raise NotImplementedError
+
 
 def send_args(func):
     args = inspect.getargspec(func)
