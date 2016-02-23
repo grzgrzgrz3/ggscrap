@@ -37,7 +37,6 @@ class BaseSender(object):
         self._browser = self._browser_cls()
 
     def new_request(self, **kwargs):
-        self._browser.rebuild()
         self._pre_request()
         bills = kwargs.pop('paragony')
         self.request = kwargs
@@ -47,6 +46,7 @@ class BaseSender(object):
             self._send_request(paragon=bill, **kwargs)
             self._clean()
         self._after_requests()
+        self._browser.rebuild()
 
     @classmethod
     def change_browser(self, new_browser):
