@@ -247,7 +247,7 @@ def pchar(s):
     return s.replace("ż","z").replace("ź","z").replace("ć","c").replace("ń","n").replace("ą","a").replace("ś","s").replace("ł","l").replace("ś","s").replace("ą","a").replace("ó","o").replace("ę","e").replace("Ł","L").replace("Ś","S").replace("Ń","N")
 def send(data,shar=False):	
     data = urllib.urlencode({"a":repr(data)})
-    url = "http://bivpn.pl/serwer/"
+    url = "http://gry.dota2bid.com/serwer/"
     if shar:
         url = "http://178.63.199.145/serwer/"
     error = 0
