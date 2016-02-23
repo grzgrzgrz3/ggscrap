@@ -1,3 +1,4 @@
 .idea
 *.pyc
 .*
+selenium_browser/configuration.conf
