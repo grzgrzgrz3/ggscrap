@@ -15,6 +15,7 @@ class Control(object):
     def __init__(self, sender):
         self._sender = sender()
         self._sender._log = self._log
+        self._sender._control = self
         self.ip = ip()
 
     def loop(self):
