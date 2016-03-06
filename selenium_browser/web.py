@@ -1,6 +1,7 @@
 import base64
 import cStringIO
 
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
@@ -56,7 +57,13 @@ class CheckBoxElement(WebElement):
     def __set__(self, instance, value):
         self.driver = instance.driver
         if bool(value) != self.checked:
-            self.element.click()
+            try:
+                self.element.click()
+            except WebDriverException as e:
+                if 'Element is not clickable at point' in e.msg:
+                    self.driver.execute_script('$("#{sel}").click()'.format(sel=self._locator))
+                else:
+                    raise
 
     def __get__(self, instance, owner):
         self.driver = instance.driver

@@ -1,3 +1,4 @@
+import random
 import time
 from PIL import Image
 
@@ -40,7 +41,7 @@ class SeleniumOpener(object):
 
 
 class GoogleCaptcha(DriverFeed):
-    iframe_selector = WebElement("//div[@id='recaptcha1']//iframe", by=By.XPATH)
+    iframe_selector = WebElement("//iframe[@title='recaptcha widget']", by=By.XPATH)
     active_button = Button('recaptcha-anchor', by=By.ID)
 
     iframe_captcha = WebElement("//iframe[@style]", by=By.XPATH)
@@ -49,29 +50,46 @@ class GoogleCaptcha(DriverFeed):
     verify_button = Button('recaptcha-verify-button', by=By.ID)
 
     def __init__(self, captcha_resolver=DeathByCaptchaClient):
-        super(GoogleCaptcha, self).__init__()
         self.captcha_resolver = captcha_resolver()
 
     def solve(self):
+        tries = 0
         self._activate()
         while 1:
+            self.captcha_result = None
             captcha_image, image_elements = self._get_images()
             self._unselect_all()
-            result = self.captcha_resolver.resolve(captcha_image)
+            if tries >= 5:
+                tries = 0
+                print "5 blednie rozwiaznych, zaznaczam 3 losowe "
+                self._random_select(image_elements)
+            else:
+                self._select_boxes(captcha_image, image_elements)
             with Iframe(self.driver, self.iframe_captcha):
-                for to_click in eval(result['text']):
-                    matched = self._match_box(to_click, image_elements)
-                    if matched:
-                        matched.web_element.click()
-                    else:
-                        print "{} not matched".format(to_click)
                 self.verify_button.element.click()
             time.sleep(5)
             if self._verify():
                 print "captcha poprawna"
                 return
             print "captcha bledna"
-            self.captcha_resolver.report(result["captcha"])
+            if self.captcha_result:
+                self.captcha_resolver.report(self.captcha_result["captcha"])
+            tries += 1
+
+    def _select_boxes(self, captcha_image, image_elements):
+        self.captcha_result = self.captcha_resolver.resolve(captcha_image)
+        with Iframe(self.driver, self.iframe_captcha):
+            for to_click in eval(self.captcha_result['text']):
+                matched = self._match_box(to_click, image_elements)
+                if matched:
+                    matched.web_element.click()
+                else:
+                    print "{} not matched".format(to_click)
+
+    def _random_select(self, image_elements):
+        with Iframe(self.driver, self.iframe_captcha):
+            for x in range(3):
+                random.choice(image_elements).web_element.click()
 
     def _verify(self):
         with Iframe(self.driver, self.iframe_selector):
@@ -109,7 +127,7 @@ class GoogleCaptcha(DriverFeed):
 
 if __name__ == '__main__':
     driver = SeleniumOpener()
-    driver.open("https://www.zakreckubkiem.pl/")
+    driver.open("http://www.carex-loteria.pl/")
     g = GoogleCaptcha(driver=driver)
     g.solve()
 

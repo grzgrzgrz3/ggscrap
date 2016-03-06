@@ -1,7 +1,7 @@
 import time
 
 import deathbycaptcha
-from .utils import config
+from utils import config
 
 TRIES = 60
 INTERVAL = 1
