@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 
 from web import WebElement, Button, Iframe, ImageWebElement, DriverFeed
 from konkursy_base.captcha import DeathByCaptchaClient
-
+from konkursy_base.utils import config
 
 class SeleniumOpener(object):
     _driver = None
@@ -36,6 +36,44 @@ class SeleniumOpener(object):
     def _get_driver(self):
         profile = webdriver.FirefoxProfile()
         profile.set_preference("intl.accept_languages", "en-us")
+
+        if config.getint('selenium', 'minimal_browser'):
+            profile.set_preference('permissions.default.image', 2)
+            profile.set_preference('permissions.default.stylesheet', 2)
+            profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
+            profile.set_preference("network.http.pipelining", True)
+            profile.set_preference("network.http.proxy.pipelining", True)
+            profile.set_preference("network.http.pipelining.maxrequests", 8)
+            profile.set_preference("content.notify.interval", 500000)
+            profile.set_preference("content.notify.ontimer", True)
+            profile.set_preference("content.switch.threshold", 250000)
+            profile.set_preference("browser.cache.memory.capacity", 65536) # Increase the cache capacity.
+            profile.set_preference("browser.startup.homepage", "about:blank")
+            profile.set_preference("reader.parse-on-load.enabled", False) # Disable reader, we won't need that.
+            profile.set_preference("browser.pocket.enabled", False) # Duck pocket too!
+            profile.set_preference("loop.enabled", False)
+            profile.set_preference("browser.chrome.toolbar_style", 1) # Text on Toolbar instead of icons
+            profile.set_preference("browser.display.show_image_placeholders", False) # Don't show thumbnails on not loaded images.
+            profile.set_preference("browser.display.use_document_colors", False) # Don't show document colors.
+            profile.set_preference("browser.display.use_document_fonts", 0) # Don't load document fonts.
+            profile.set_preference("browser.display.use_system_colors", True) # Use system colors.
+            profile.set_preference("browser.formfill.enable", False) # Autofill on forms disabled.
+            profile.set_preference("browser.helperApps.deleteTempFileOnExit", True) # Delete temprorary files.
+            profile.set_preference("browser.shell.checkDefaultBrowser", False)
+            profile.set_preference("browser.startup.homepage", "about:blank")
+            profile.set_preference("browser.startup.page", 0) # blank
+            profile.set_preference("browser.tabs.forceHide", True) # Disable tabs, We won't need that.
+            profile.set_preference("browser.urlbar.autoFill", False) # Disable autofill on URL bar.
+            profile.set_preference("browser.urlbar.autocomplete.enabled", False) # Disable autocomplete on URL bar.
+            profile.set_preference("browser.urlbar.showPopup", False) # Disable list of URLs when typing on URL bar.
+            profile.set_preference("browser.urlbar.showSearch", False) # Disable search bar.
+            profile.set_preference("extensions.checkCompatibility", False) # Addon update disabled
+            profile.set_preference("extensions.checkUpdateSecurity", False)
+            profile.set_preference("extensions.update.autoUpdateEnabled", False)
+            profile.set_preference("extensions.update.enabled", False)
+            profile.set_preference("general.startup.browser", False)
+            profile.set_preference("plugin.default_plugin_disabled", False)
+            profile.set_preference("permissions.default.image", 2) # Image load disabled again
         profile.update_preferences()
         return webdriver.Firefox(firefox_profile=profile)
 
@@ -49,16 +87,20 @@ class GoogleCaptcha(DriverFeed):
 
     verify_button = Button('recaptcha-verify-button', by=By.ID)
 
+    captcha_result = None
+
     def __init__(self, captcha_resolver=DeathByCaptchaClient):
         self.captcha_resolver = captcha_resolver()
 
     def solve(self):
+        self._solve()
+
+    def _solve(self):
         tries = 0
         self._activate()
         while 1:
             self.captcha_result = None
             captcha_image, image_elements = self._get_images()
-            self._unselect_all()
             if tries >= 5:
                 tries = 0
                 print "5 blednie rozwiaznych, zaznaczam 3 losowe "
@@ -71,6 +113,7 @@ class GoogleCaptcha(DriverFeed):
             if self._verify():
                 print "captcha poprawna"
                 return
+            self._unselect_all()
             print "captcha bledna"
             if self.captcha_result:
                 self.captcha_resolver.report(self.captcha_result["captcha"])
@@ -109,7 +152,13 @@ class GoogleCaptcha(DriverFeed):
 
     def _unselect_all(self):
         with Iframe(self.driver, self.iframe_captcha):
-            [x.click() for x in self.driver.find_elements(By.CLASS_NAME, "rc-imageselect-tileselected")]
+            while 1:
+                a = [x for x in self.driver.find_elements(By.CLASS_NAME, "rc-imageselect-tileselected")]
+                if not a:
+                    break
+                for element in a:
+                    element.find_element(By.CLASS_NAME, "rc-image-tile-wrapper").click()
+                print "Unselected %s elements" % len(a)
 
     def _get_images(self):
         self.driver.save_screenshot('screenshot.png')
