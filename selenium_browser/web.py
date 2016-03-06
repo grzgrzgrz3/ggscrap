@@ -2,6 +2,7 @@ import base64
 import cStringIO
 
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
@@ -104,9 +105,28 @@ class Iframe(object):
 
 
 class Button(WebElement):
-    def submit(self):
+    def submit(self, scroll=False):
+        if scroll:
+            position = self.element.location['y']
+            widow_size = self.driver.get_window_size()['height']
+            center = position - (widow_size/2)
+            print "widow_size: %s, postion: %s"% (widow_size, position)
+            print "Scrolling to %s" % center
+            self.driver.execute_script("scroll(0,%s)" % center)
         self.element.click()
 
+
+class Option(WebElement):
+    def select_by_index(self, index):
+        select = Select(self.element)
+        select.select_by_index(index)
+
+
+class Text(WebElement):
+
+    @property
+    def text(self):
+        return self.element.text
 
 class ImageWebElement(object):
     # TODO: Seperate ImageWeb and BoxWeb
