@@ -39,6 +39,8 @@ class BaseSender(object):
     def new_request(self, **kwargs):
         self._pre_request()
         bills = kwargs.pop('paragony')
+        no_rebuild = kwargs.pop('product1', None)
+
         self.request = kwargs
         for bill in bills:
             self._log("Sending bill %s" % bill)
@@ -46,7 +48,8 @@ class BaseSender(object):
             self._send_request(paragon=bill, **kwargs)
             self._clean()
         self._after_requests()
-        self._browser.rebuild()
+        if not no_rebuild:
+            self._browser.rebuild()
 
     @classmethod
     def change_browser(self, new_browser):
@@ -141,8 +144,9 @@ class ResponseMatchSender(BaseSender):
 
         matches = filter(None, [re.match(pattern_suffix, attr)
                                 for attr in dir(self)])
+
         return [{'method': match.group(1),
-                 'pattern': getattr(self, match.group(0))} for match in matches]
+                 'pattern': getattr(self, match.group(0))} for match in matches if getattr(self, match.group(0))]
 
     def _match_response(self, response):
         for pattern in self._get_all_patterns():
@@ -151,7 +155,6 @@ class ResponseMatchSender(BaseSender):
 
     def _process_response(self, method, *args, **kwargs):
         response = method(*args, **kwargs)
-
         if not hasattr(method, 'responsable') or not method.responsable:
             return response
         response_method = self._match_response(response)
