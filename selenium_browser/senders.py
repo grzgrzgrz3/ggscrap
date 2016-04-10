@@ -93,7 +93,17 @@ class GoogleCaptcha(DriverFeed):
         self.captcha_resolver = captcha_resolver()
 
     def solve(self):
-        self._solve()
+        errors = 0
+        while 1:
+            try:
+                self._solve()
+                break
+            except:
+                errors +=1
+                print "captcha error %s" % errors
+                if errors >= 3:
+                    raise
+                time.sleep(5)
 
     def _solve(self):
         tries = 0
@@ -101,12 +111,13 @@ class GoogleCaptcha(DriverFeed):
         while 1:
             self.captcha_result = None
             captcha_image, image_elements = self._get_images()
-            if tries >= 5:
+            if tries >= config.getint('captcha', 'random_solve_after'):
+                print "%s blednie rozwiaznych, zaznaczam 3 losowe" % tries
                 tries = 0
-                print "5 blednie rozwiaznych, zaznaczam 3 losowe "
                 self._random_select(image_elements)
             else:
                 self._select_boxes(captcha_image, image_elements)
+                tries += 1
             with Iframe(self.driver, self.iframe_captcha):
                 self.verify_button.element.click()
             time.sleep(5)
@@ -117,7 +128,6 @@ class GoogleCaptcha(DriverFeed):
             print "captcha bledna"
             if self.captcha_result:
                 self.captcha_resolver.report(self.captcha_result["captcha"])
-            tries += 1
 
     def _select_boxes(self, captcha_image, image_elements):
         self.captcha_result = self.captcha_resolver.resolve(captcha_image)
