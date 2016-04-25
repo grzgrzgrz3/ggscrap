@@ -111,6 +111,10 @@ class Response(object):
             raise
 
     @property
+    def text(self):
+        return self._response
+
+    @property
     def dict_response(self):
         return eval(self._response)
 
@@ -137,6 +141,8 @@ class Response(object):
     def save(self, name):
         saving(self.save_path.format(name), self.soup_response.prettify().encode('utf8'))
 
+    def binary_save(self, path):
+        saving(path, self._response)
 
 # TODO: implement json discovery response somehow, with custom response parsing/handling
 # TODO: use normal logging system based on logging module
