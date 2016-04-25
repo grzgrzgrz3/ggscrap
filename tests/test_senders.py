@@ -1,7 +1,7 @@
 import unittest
 from contextlib import contextmanager
 
-from mock import patch, call, PropertyMock, MagicMock
+from mock import patch, call, PropertyMock, MagicMock, Mock
 from exception import MissingMethod, UnknownResponse
 from senders import ALL_ACTION_METHODS, BaseSender, ResponseSignals, send_args, ResponseMatchSender
 
@@ -10,12 +10,13 @@ class SenderTest(unittest.TestCase):
     _all_action_methods = ALL_ACTION_METHODS
 
     def setUp(self):
-        self.openurl_patcher = patch('senders.OpenUrlWrapper')
-        self.openurl = self.openurl_patcher.start()
 
         self.send_patcher = patch('senders.BaseSender.send')
         self.send = self.send_patcher.start()
         self.send.return_value = ResponseSignals.SUCCESS
+        self.openurl = Mock()
+        BaseSender.change_browser(self.openurl)
+        BaseSender._log = Mock()
 
         self.sender = BaseSender()
 
@@ -43,7 +44,6 @@ class SenderTest(unittest.TestCase):
                 patcher.stop()
 
     def tearDown(self):
-        self.openurl_patcher.stop()
         self.send_patcher.stop()
 
 
