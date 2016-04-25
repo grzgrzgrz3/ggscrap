@@ -144,9 +144,14 @@ class ResponseMatchSender(BaseSender):
 
         matches = filter(None, [re.match(pattern_suffix, attr)
                                 for attr in dir(self)])
-
-        return [{'method': match.group(1),
+        patterns = [{'method': match.group(1),
                  'pattern': getattr(self, match.group(0))} for match in matches if getattr(self, match.group(0))]
+
+        unknow = [pattern for pattern in patterns if pattern['method'] == 'unknown'][0]
+        patterns.remove(unknow)
+        patterns.append(unknow)
+
+        return patterns
 
     def _match_response(self, response):
         for pattern in self._get_all_patterns():
