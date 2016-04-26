@@ -28,7 +28,7 @@ class DeathByCaptchaClient(CaptchaClient):
         for x in range(TRIES):
             try:
                 if solve_type:
-                    result = self._client.decode(path, solve_type=2)
+                    result = self._client.decode(path, type=solve_type)
                 else:
                     result = self._client.decode(path, 60)
                 if result:
