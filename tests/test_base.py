@@ -2,6 +2,9 @@ import unittest
 import base
 from mock import patch, MagicMock
 from exception import UnrecognizedIpchangeType
+import logging
+
+logging.disable(logging.CRITICAL)
 
 
 class TestControl(unittest.TestCase):

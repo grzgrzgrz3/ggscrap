@@ -5,9 +5,11 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+from konkursy_base.senders import RebuildContinue
 from web import WebElement, Button, Iframe, ImageWebElement, DriverFeed
 from konkursy_base.captcha import DeathByCaptchaClient
 from konkursy_base.utils import config
+from konkursy_base.log import logger
 
 
 class SeleniumOpener(object):
@@ -100,10 +102,10 @@ class GoogleCaptcha(DriverFeed):
                 self._solve()
                 break
             except:
+                logger.exception("Captcha exception")
                 errors +=1
-                print "captcha error %s" % errors
-                if errors >= 3:
-                    raise
+                if errors >= 2:
+                    raise RebuildContinue()
                 time.sleep(5)
 
     def _solve(self):
@@ -112,9 +114,9 @@ class GoogleCaptcha(DriverFeed):
         while 1:
             captcha_image, image_elements = self._get_images()
             captcha_result = self._get_selections(captcha_image)
-            print "captcha result %s"%captcha_result
+            logger.debug("captcha result %s", captcha_result)
             if last_captcha_result and captcha_result['text'] == last_captcha_result['text']:
-                print "Ponowne bledne rozwiazanie, zaznaczam 3 losowe"
+                logger.debug("Ponowne bledne rozwiazanie, zaznaczam 3 losowe")
                 self._random_select(image_elements)
             else:
                 self._select_boxes(image_elements, captcha_result['text'])
@@ -122,10 +124,10 @@ class GoogleCaptcha(DriverFeed):
                 self.verify_button.element.click()
             time.sleep(5)
             if self._verify():
-                print "captcha poprawna"
+                logger.debug("captcha poprawna")
                 return
             self._unselect_all()
-            print "captcha bledna"
+            logger.debug("captcha bledna")
             self.captcha_resolver.report(captcha_result["captcha"])
             last_captcha_result = captcha_result
 
@@ -139,7 +141,7 @@ class GoogleCaptcha(DriverFeed):
                 if matched:
                     matched.web_element.click()
                 else:
-                    print "{} not matched".format(to_click)
+                    logger.warning("{} not matched".format(to_click))
 
     def _random_select(self, image_elements):
         with Iframe(self.driver, self.iframe_captcha):
@@ -170,7 +172,7 @@ class GoogleCaptcha(DriverFeed):
                     break
                 for element in a:
                     element.find_element(By.CLASS_NAME, "rc-image-tile-wrapper").click()
-                print "Unselected %s elements" % len(a)
+                logger.debug("Unselected %s elements" % len(a))
 
     def _get_images(self):
         self.driver.save_screenshot('screenshot.png')

@@ -4,6 +4,7 @@ from functools import partial
 
 from base import OpenUrlWrapper
 from exception import MissingMethod, UnknownResponse
+from log import logger
 
 ALL_ACTION_METHODS = ('send', 'pre_request', 'pre_send', 'clean', 'after_requests')
 
@@ -13,6 +14,18 @@ class ResponseSignals:
     RESEND = 2
     CAPTCHA = RESEND
     FULLRESEND = 3
+
+
+class SignalException(Exception):
+    pass
+
+
+class IgnoreRequest(SignalException):
+    pass
+
+
+class RebuildContinue(SignalException):
+    pass
 
 
 def resend(signal=ResponseSignals.RESEND):
@@ -28,7 +41,6 @@ def resend(signal=ResponseSignals.RESEND):
 
 
 class BaseSender(object):
-    _log = None
     request = None
     current_bill = None
     _browser_cls = OpenUrlWrapper
@@ -43,9 +55,16 @@ class BaseSender(object):
 
         self.request = kwargs
         for bill in bills:
-            self._log("Sending bill %s" % bill)
+            logger.info("Sending bill %s", bill)
             self.current_bill = bill
-            self._send_request(paragon=bill, **kwargs)
+            try:
+                self._send_request(paragon=bill, **kwargs)
+            except IgnoreRequest:
+                logger.debug("Ignoring full request")
+                break
+            except RebuildContinue:
+                self._browser.rebuild()
+                continue
             self._clean()
         self._after_requests()
         if not no_rebuild:
@@ -183,10 +202,10 @@ class ResponseSender(ResponseMatchSender):
         pass
 
     def RESULT_duplicate(self):
-        self._log("Duplicated bill")
+        logger.info("Duplicated bill")
 
     def RESULT_success(self):
-        self._log("Successful registered")
+        logger.info("Successful registered")
 
     def RESULT_unknown(self):
         pass

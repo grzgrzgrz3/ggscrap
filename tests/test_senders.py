@@ -1,9 +1,12 @@
+import logging
 import unittest
 from contextlib import contextmanager
 
 from mock import patch, call, PropertyMock, MagicMock, Mock
 from exception import MissingMethod, UnknownResponse
 from senders import ALL_ACTION_METHODS, BaseSender, ResponseSignals, send_args, ResponseMatchSender
+
+logging.disable(logging.CRITICAL)
 
 
 class SenderTest(unittest.TestCase):

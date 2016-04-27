@@ -39,26 +39,6 @@ def decgzip(data):
     f = gzip.GzipFile(fileobj=buf)
     data = f.read()
     return data
-def trader(img):
-    APIKEY = "9f65e7f381c3af2b076ea680ae96b0b7"
-    var = open(img,'rb')
-    ab = var.read()
-    var.close()
-    var = ab.encode('base64')
-    url = "http://api.captchatrader.com/submit"
-    timestamp_form = {'api_key': APIKEY,
-              'password': "killer5",
-              'username': "soras5",
-              'value': var}
-    data = urllib.urlencode(timestamp_form)
-    while 1:
-        try:
-            response = urllib2.urlopen(url,data).read()
-            break
-        except:
-            print "CONN ERROR"
-    response = eval(response)
-    return response[1]
 
 class signal(threading.Thread):
     def __init__(self):

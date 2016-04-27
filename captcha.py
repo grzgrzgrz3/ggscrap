@@ -2,6 +2,7 @@ import re
 import time
 
 import deathbycaptcha
+from log import logger
 from utils import config
 
 TRIES = 60
@@ -32,22 +33,22 @@ class DeathByCaptchaClient(CaptchaClient):
                 else:
                     result = self._client.decode(path, 60)
                 if result:
-                    print "result form deathbycaptcha {}".format(result)
+                    logger.info("result form deathbycaptcha {}".format(result))
                     return result
                 else:
-                    print "None response from deathbycaptcha"
+                    logger.warning("None response from deathbycaptcha")
             except deathbycaptcha.AccessDeniedException:
-                print "deathbycaptcha.AccessDeniedException"
+                logger.critical("deathbycaptcha.AccessDeniedException")
                 self._deathbycaptcha_client = None
-            except Exception as e:
-                print "Error from deathbycaptcha ({0})".format(e)
+            except:
+                logger.exception("Error from deathbycaptcha")
             time.sleep(INTERVAL)
 
     def report(self, captcha_id):
         try:
             self._client.report(captcha_id)
-        except Exception as e:
-                print "Error from deathbycaptcha when reporting wrong result ({0})".format(e)
+        except:
+            logger.exception("deathbycaptcha report error")
 
     @property
     def _client(self):
@@ -69,7 +70,7 @@ class Recaptcha(object):
         image_data = self.p.open(self._image_url, None, "lastnot")
         image_data.binary_save(self._path)
 
-        self.result = self.client.resolve(self._path)
+        self.result = self.client.resolve(self._path, solve_type=False)
 
     def inputs(self):
         return {"recaptcha_challenge_field": self._challenge,

@@ -80,7 +80,7 @@ class InputBox(WebElement):
 
     def __set__(self, instance, value):
         self._driver = instance.driver
-        self.element.send_keys(str(value))
+        self.element.send_keys(value)
 
     def __get__(self, instance, owner):
         self._driver = instance.driver

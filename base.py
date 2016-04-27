@@ -9,16 +9,23 @@ from exception import UnrecognizedIpchangeType
 from dodatki.test import ip, ipchange
 from dodatki.ekstra import send, log, openurl, saving
 from dodatki.telnettt import zmiana
+from log import logger
 
 
 class Control(object):
     def __init__(self, sender):
         self._sender = sender()
-        self._sender._log = self._log
         self._sender._control = self
         self.ip = ip()
 
     def loop(self):
+        try:
+            self._loop()
+        except:
+            logger.exception("Exception on top")
+            raise
+
+    def _loop(self):
         while 1:
             self.new_request()
 
@@ -48,7 +55,7 @@ class Control(object):
         if action_info['status']:
             return True
         elif not action_info['ip']:
-            self._log(action_info['ip_msg'])
+            logger.debug("Ip message: %s", action_info['ip_msg'])
             return False
         else:
             # TODO: Need to implement sleep. Problem is that we need to free lock on ipchange during sleep
@@ -63,18 +70,14 @@ class Control(object):
         try:
             action = eval(raw_action)
         except SyntaxError:
-            self._log("Answer from server not in json format\n"
-                      "----------\n{0}\n----------\n".format(repr(raw_action)))
+            logger.exception("Answer from server not in json format: %s", repr(raw_action))
             raise
         return action
-
-    def _log(self, message):
-        log(self._project_name.decode('utf-8') + u".log", message)
 
     def _log_new_action(self, action_info):
         dane_string = u" ".join(u"{0}:{1}; ".format(key, value) for key, value in action_info['dane'].items())
         paragon_count = len(action_info['paragony'])
-        self._log(u"New action dane: {0}, applications sent: {1}".format(dane_string, paragon_count))
+        logger.info("New action dane: %s, applications sent: %s", dane_string, paragon_count)
 
 
 class OpenUrlWrapper(object):
@@ -145,7 +148,6 @@ class Response(object):
         saving(path, self._response)
 
 # TODO: implement json discovery response somehow, with custom response parsing/handling
-# TODO: use normal logging system based on logging module
 # TODO: need smart, smooth download, resolve captcha system
 # TODO: add configurable sleep between requests
 # TODO: auto response event parsing
